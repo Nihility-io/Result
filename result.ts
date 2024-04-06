@@ -47,7 +47,7 @@ export abstract class Result<T> {
 	 * @param err Error that should be wrapped
 	 * @returns Result that wraps the given error
 	 */
-	public static readonly failure = <T>(err: Error): Result<T> => Failure.of(err)
+	public static readonly failure = <T>(err: Error | string): Result<T> => Failure.of(err)
 
 	/**
 	 * If the result is a success its value is returned, If the result is a failure the
@@ -328,7 +328,10 @@ export class Failure<T> extends Result<T> {
 	 * @param err Error that should be wrapped
 	 * @returns Result that wraps the given error
 	 */
-	public static of<T>(err: Error): Result<T> {
+	public static of<T>(err: Error | string): Result<T> {
+		if (typeof err === "string") {
+			return new Failure(new Error(err))
+		}
 		return new Failure(err)
 	}
 
