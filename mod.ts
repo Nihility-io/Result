@@ -1,4 +1,4 @@
-export { default, Failure, Success } from "./result.ts"
+export { Failure, Result as default, Success } from "./result.ts"
 export {
 	defaultErrorDecoder,
 	defaultErrorEncoder,

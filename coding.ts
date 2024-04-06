@@ -1,5 +1,5 @@
-import z, { ZodType } from "https://deno.land/x/zod@v3.22.4/index.ts"
-import Result from "./result.ts"
+import { z, ZodType } from "zod"
+import { Result } from "./result.ts"
 
 /**
  * The error encoder is called when encoding a Failure to JSON. This function

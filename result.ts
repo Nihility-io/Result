@@ -20,7 +20,7 @@ export interface ResultMatcher<T, R> {
  * Object which be can returned by a function or API which either contains a value (Success) or an
  * error (Failure).
  */
-export default abstract class Result<T> {
+export abstract class Result<T> {
 	/*******************************************************************************
 	 * Static Methods                                                              *
 	 *******************************************************************************/
@@ -90,7 +90,7 @@ export default abstract class Result<T> {
 	 * @param a List of results
 	 * @returns Result with the list of wrapped values
 	 */
-	public static readonly combine = <T>(a: Result<T>[]) => {
+	public static readonly combine = <T>(a: Result<T>[]): Result<T[]> => {
 		const res = [] as T[]
 		for (const e of a) {
 			if (e instanceof Failure) {
