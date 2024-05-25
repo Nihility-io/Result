@@ -1,4 +1,4 @@
-import { z, ZodType } from "zod"
+import { z } from "zod"
 import { Result } from "./result.ts"
 
 /**
@@ -154,7 +154,7 @@ export const resultJSONReviver: JSONReviver = (_key, value) => {
  * @param model Optional Zod model for the contained value
  * @returns Parsed result
  */
-export const fromJson = <T extends ZodType>(str: string, model: T): Result<z.infer<T>> => {
+export const fromJson = <T>(str: string, model?: z.ZodType<T>): Result<T> => {
 	let res: unknown = undefined
 
 	try {
@@ -169,6 +169,10 @@ export const fromJson = <T extends ZodType>(str: string, model: T): Result<z.inf
 		} else {
 			return res
 		}
+	}
+
+	if (!model) {
+		return Result.success(res as T)
 	}
 
 	const v = model.safeParse(res)

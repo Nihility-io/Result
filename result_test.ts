@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-import { assertEquals, assertInstanceOf, assertThrows } from "@std/assert"
+import { assertEquals, assertInstanceOf, assertIsError, assertThrows } from "@std/assert"
 import { z } from "zod"
 import Result, { Failure, Success } from "./mod.ts"
 
@@ -54,7 +54,18 @@ Deno.test("Encoding/Decoding", async (t) => {
 	await t.step("JSON Decoding", async (t) => {
 		await t.step("Success", () => {
 			const resJ = JSON.parse(successJson, Result.JSONReviver)
-			const resR = Result.fromJson(successJson, Person)
+			const resR = Result.fromJson<Person>(successJson, Person)
+			assertInstanceOf(resJ, Success as any)
+			assertInstanceOf(resJ, Result as any)
+			assertInstanceOf(resR, Success as any)
+			assertInstanceOf(resR, Result as any)
+			assertEquals(resJ as Result<Person>, successResult)
+			assertEquals(resR as Result<Person>, successResult)
+		})
+
+		await t.step("SuccessWithoutModel", () => {
+			const resJ = JSON.parse(successJson, Result.JSONReviver)
+			const resR = Result.fromJson<Person>(successJson)
 			assertInstanceOf(resJ, Success as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Success as any)
@@ -65,7 +76,18 @@ Deno.test("Encoding/Decoding", async (t) => {
 
 		await t.step("Failure", () => {
 			const resJ = JSON.parse(failureJson, Result.JSONReviver)
-			const resR = Result.fromJson(failureJson, Person)
+			const resR = Result.fromJson<Person>(failureJson, Person)
+			assertInstanceOf(resJ, Failure as any)
+			assertInstanceOf(resJ, Result as any)
+			assertInstanceOf(resR, Failure as any)
+			assertInstanceOf(resR, Result as any)
+			assertFailureEquals(resJ as Failure<Person>, failureResult as Failure<unknown>)
+			assertFailureEquals(resR as Failure<Person>, failureResult as Failure<unknown>)
+		})
+
+		await t.step("FailureWithoutModel", () => {
+			const resJ = JSON.parse(failureJson, Result.JSONReviver)
+			const resR = Result.fromJson<Person>(failureJson)
 			assertInstanceOf(resJ, Failure as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Failure as any)
@@ -157,6 +179,16 @@ Deno.test("Functions", async (t) => {
 		})
 	})
 
+	await t.step("UnwrapError", async (t) => {
+		await t.step("Success", () => {
+			assertThrows(() => success.unwrapError(), "Cannot unwrap error of a success result.")
+		})
+
+		await t.step("Failure", () => {
+			assertIsError(failure.unwrapError(), Error, "Error")
+		})
+	})
+
 	await t.step("Map", async (t) => {
 		await t.step("Success", () => {
 			assertEquals(success.map((x) => x * 2), expectedSuccess)
@@ -203,13 +235,13 @@ Deno.test("Functions", async (t) => {
 		})
 	})
 
-	await t.step("Combine", async (t) => {
+	await t.step("All", async (t) => {
 		await t.step("Success", () => {
-			assertEquals(Result.combine(resultListSuccess), expectedCombineSuccess)
+			assertEquals(Result.all(resultListSuccess), expectedCombineSuccess)
 		})
 
 		await t.step("Failure", () => {
-			assertEquals(Result.combine(resultListFailure), expectedCombineFailure)
+			assertEquals(Result.all(resultListFailure), expectedCombineFailure)
 		})
 	})
 

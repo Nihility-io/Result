@@ -1,3 +1,4 @@
+import { z } from "zod"
 import {
 	defaultErrorDecoder,
 	defaultErrorEncoder,
@@ -36,6 +37,12 @@ export abstract class Result<T> {
 	public static readonly isFailure = <T>(res: Result<T>): res is Failure<T> => res instanceof Failure
 
 	/**
+	 * Casts the inner type of a result into a different type. Only use it, if you know what you are doing.
+	 * @returns Cast result
+	 */
+	public static readonly as = <T, R>(res: Result<T>): Result<R> => res.as<R>()
+
+	/**
 	 * Creates a new success result
 	 * @param value Value that should be wrapped
 	 * @returns Result that wraps the given value
@@ -58,6 +65,13 @@ export abstract class Result<T> {
 	 * @throws The failure' wrapped error if no default is given
 	 */
 	public static readonly unwrap = <T>(defaultVault?: T) => (res: Result<T>): T => res.unwrap(defaultVault)
+
+	/**
+	 * If the result is a failure its error is returned, If the result is a success the
+	 * function throws an error.
+	 * @returns The wrapped error
+	 */
+	public static readonly unwrapError = <T>(res: Result<T>): Error => res.unwrapError()
 
 	/**
 	 * If the result type is success, map calls the provided function with the wrapped
@@ -89,8 +103,17 @@ export abstract class Result<T> {
 	 * If a failure is encountered it returns that failure instead.
 	 * @param a List of results
 	 * @returns Result with the list of wrapped values
+	 * @deprecated Use `Result.all` instead.
 	 */
-	public static readonly combine = <T>(a: Result<T>[]): Result<T[]> => {
+	public static readonly combine = <T>(a: Result<T>[]): Result<T[]> => this.all(a)
+
+	/**
+	 * Takes a list of results and returns a result containing all success values.
+	 * If a failure is encountered it returns that failure instead.
+	 * @param a List of results
+	 * @returns Result with the list of wrapped values
+	 */
+	public static readonly all = <T>(a: Result<T>[]): Result<T[]> => {
 		const res = [] as T[]
 		for (const e of a) {
 			if (e instanceof Failure) {
@@ -141,7 +164,7 @@ export abstract class Result<T> {
 	 * @param model Optional Zod model for the contained value
 	 * @returns Parsed result
 	 */
-	public static readonly fromJson = fromJson
+	public static readonly fromJson: <T>(str: string, model?: z.ZodType<T>) => Result<T> = fromJson
 
 	/**
 	 * Takes a promise and turns it into a promise result. If the promises is resolved it
@@ -188,6 +211,13 @@ export abstract class Result<T> {
 	public abstract unwrap(defaultVault?: T): T
 
 	/**
+	 * If the result is a failure its error is returned, If the result is a success the
+	 * function throws an error.
+	 * @returns The wrapped error
+	 */
+	public abstract unwrapError(): Error
+
+	/**
 	 * If the result type is success, map calls the provided function with the wrapped
 	 * value as an parameter. Said function should return either a new value or a new result.
 	 * If the result type is failure, map simply returns the current result.
@@ -226,6 +256,14 @@ export abstract class Result<T> {
 	 */
 	public isFailure(): this is Failure<T> {
 		return this instanceof Failure
+	}
+
+	/**
+	 * Casts the inner type of a result into a different type. Only use it, if you know what you are doing.
+	 * @returns Cast result
+	 */
+	public as<R>(): Result<R> {
+		return this as Result<unknown> as Result<R>
 	}
 
 	/**
@@ -276,6 +314,15 @@ export class Success<T> extends Result<T> {
 	 */
 	public unwrap(_defaultVault?: T): T {
 		return this.value
+	}
+
+	/**
+	 * If the result is a failure its error is returned, If the result is a success the
+	 * function throws an error.
+	 * @returns The wrapped error
+	 */
+	public unwrapError(): Error {
+		throw new Error("Cannot unwrap error of a success result.")
 	}
 
 	/**
@@ -357,6 +404,15 @@ export class Failure<T> extends Result<T> {
 			return defaultVault
 		}
 		throw this.error
+	}
+
+	/**
+	 * If the result is a failure its error is returned, If the result is a success the
+	 * function throws an error.
+	 * @returns The wrapped error
+	 */
+	public unwrapError(): Error {
+		return this.error
 	}
 
 	/**
