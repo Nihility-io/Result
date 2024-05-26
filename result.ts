@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z, ZodType } from "zod"
 import {
 	defaultErrorDecoder,
 	defaultErrorEncoder,
@@ -164,7 +164,24 @@ export abstract class Result<T> {
 	 * @param model Optional Zod model for the contained value
 	 * @returns Parsed result
 	 */
-	public static readonly fromJson: <T>(str: string, model?: z.ZodType<T>) => Result<T> = fromJson
+	public static fromJson<T extends z.ZodType>(str: string, model: T): Result<z.infer<T>>
+
+	/**
+	 * Parses a JSON string into a result type and optionally parses the contained value using
+	 * a Zod model. If no Zod model is specified the contained value remains a plain object.
+	 * This function does not panic. In case an error occurs it returns a failure result.
+	 * @param str JSON string
+	 * @param model Optional Zod model for the contained value
+	 * @returns Parsed result
+	 */
+	public static fromJson<T>(str: string): Result<T>
+
+	static fromJson(...args: unknown[]): unknown {
+		if (args.length == 2) {
+			return fromJson(args[0] as string, args[1] as ZodType)
+		}
+		return fromJson(args[0] as string)
+	}
 
 	/**
 	 * Takes a promise and turns it into a promise result. If the promises is resolved it

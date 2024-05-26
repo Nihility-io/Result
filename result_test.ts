@@ -3,13 +3,16 @@ import { assertEquals, assertInstanceOf, assertIsError, assertThrows } from "@st
 import { z } from "zod"
 import Result, { Failure, Success } from "./mod.ts"
 
-interface Person {
-	name: string
-}
-
 const Person = z.object({
 	name: z.string(),
+	birthday: z.string().transform((str) => new Date(str)),
 })
+export interface Person extends z.infer<typeof Person> {}
+
+export interface PersonNoZod {
+	name: string
+	birthday: string
+}
 
 class MyError extends Error {
 	constructor(message: string) {
@@ -28,13 +31,14 @@ const assertErrorEquals = (e1: Error, e2: Error) => {
 }
 
 Deno.test("Encoding/Decoding", async (t) => {
-	const successResult = Result.success<Person>({ name: "John Smith" })
-	const successJson = `{"status":"success","value":{"name":"John Smith"}}`
+	const successResult = Result.success<Person>({ name: "John Smith", birthday: new Date("2000-01-01") })
+	const successJson = `{"status":"success","value":{"name":"John Smith","birthday":"2000-01-01T00:00:00.000Z"}}`
+	const successResultNoZod = Result.success<PersonNoZod>({ name: "John Smith", birthday: "2000-01-01T00:00:00.000Z" })
 
 	const failureResult = Result.failure<Person>(new MyError("Oh, no!"))
 	const failureJson = `{"status":"failure","error":{"name":"MyError","message":"Oh, no!"}}`
 
-	const nestedResult = { msg: "Hello World!", person: successResult }
+	const nestedResult = { msg: "Hello World!", person: successResultNoZod }
 	const nestedJson = `{"msg":"Hello World!","person":${successJson}}`
 
 	await t.step("JSON Encoding", async (t) => {
@@ -54,46 +58,46 @@ Deno.test("Encoding/Decoding", async (t) => {
 	await t.step("JSON Decoding", async (t) => {
 		await t.step("Success", () => {
 			const resJ = JSON.parse(successJson, Result.JSONReviver)
-			const resR = Result.fromJson<Person>(successJson, Person)
+			const resR = Result.fromJson(successJson, Person)
 			assertInstanceOf(resJ, Success as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Success as any)
 			assertInstanceOf(resR, Result as any)
-			assertEquals(resJ as Result<Person>, successResult)
+			assertEquals(resJ as Result<PersonNoZod>, successResultNoZod)
 			assertEquals(resR as Result<Person>, successResult)
 		})
 
 		await t.step("SuccessWithoutModel", () => {
 			const resJ = JSON.parse(successJson, Result.JSONReviver)
-			const resR = Result.fromJson<Person>(successJson)
+			const resR = Result.fromJson(successJson)
 			assertInstanceOf(resJ, Success as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Success as any)
 			assertInstanceOf(resR, Result as any)
-			assertEquals(resJ as Result<Person>, successResult)
-			assertEquals(resR as Result<Person>, successResult)
+			assertEquals(resJ as Result<PersonNoZod>, successResultNoZod)
+			assertEquals(resR as Result<PersonNoZod>, successResultNoZod)
 		})
 
 		await t.step("Failure", () => {
 			const resJ = JSON.parse(failureJson, Result.JSONReviver)
-			const resR = Result.fromJson<Person>(failureJson, Person)
+			const resR = Result.fromJson(failureJson, Person)
 			assertInstanceOf(resJ, Failure as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Failure as any)
 			assertInstanceOf(resR, Result as any)
-			assertFailureEquals(resJ as Failure<Person>, failureResult as Failure<unknown>)
+			assertFailureEquals(resJ as Failure<PersonNoZod>, failureResult as Failure<unknown>)
 			assertFailureEquals(resR as Failure<Person>, failureResult as Failure<unknown>)
 		})
 
 		await t.step("FailureWithoutModel", () => {
 			const resJ = JSON.parse(failureJson, Result.JSONReviver)
-			const resR = Result.fromJson<Person>(failureJson)
+			const resR = Result.fromJson(failureJson)
 			assertInstanceOf(resJ, Failure as any)
 			assertInstanceOf(resJ, Result as any)
 			assertInstanceOf(resR, Failure as any)
 			assertInstanceOf(resR, Result as any)
-			assertFailureEquals(resJ as Failure<Person>, failureResult as Failure<unknown>)
-			assertFailureEquals(resR as Failure<Person>, failureResult as Failure<unknown>)
+			assertFailureEquals(resJ as Failure<PersonNoZod>, failureResult as Failure<unknown>)
+			assertFailureEquals(resR as Failure<PersonNoZod>, failureResult as Failure<unknown>)
 		})
 
 		await t.step("Nested", () => {
