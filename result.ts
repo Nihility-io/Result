@@ -176,11 +176,11 @@ export abstract class Result<T> {
 	 */
 	public static fromJson<T>(str: string): Result<T>
 
-	static fromJson(...args: unknown[]): unknown {
-		if (args.length == 2) {
-			return fromJson(args[0] as string, args[1] as ZodType)
+	public static fromJson(str: string, model?: unknown): unknown {
+		if (model !== undefined) {
+			return fromJson(str, model as ZodType)
 		}
-		return fromJson(args[0] as string)
+		return fromJson(str)
 	}
 
 	/**

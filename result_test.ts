@@ -272,7 +272,7 @@ Deno.test("Functions", async (t) => {
 		await t.step("Failure", async () => {
 			assertFailureEquals(
 				await Result.fromPromise(
-					new Promise<number>((resolve, reject) => reject(new Error("Error"))),
+					new Promise<number>((_resolve, reject) => reject(new Error("Error"))),
 				) as Failure<number>,
 				failure as Failure<number>,
 			)

@@ -1,9 +1,10 @@
 {
   "name": "@nihility-io/result",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "exports": "./mod.ts",
   "lock": true,
   "tasks": {
+    "check": "deno fmt --check && deno lint && deno check **/*.ts",
     "test": "deno test --coverage=coverage && deno coverage coverage --html && deno coverage coverage --detailed && deno coverage coverage"
   },
   "imports": {
@@ -16,7 +17,14 @@
         "fresh",
         "recommended"
       ]
-    }
+    },
+    "exclude": [
+      ".vscode/**",
+      "*.json",
+      "**/*.json",
+      "*.gen.ts*",
+      "README.md"
+    ]
   },
   "fmt": {
     "useTabs": true,
@@ -24,6 +32,13 @@
     "indentWidth": 4,
     "semiColons": false,
     "singleQuote": false,
-    "proseWrap": "preserve"
+    "proseWrap": "preserve",
+    "exclude": [
+      ".vscode/**",
+      "*.json",
+      "**/*.json",
+      "*.gen.ts*",
+      "README.md"
+    ]
   }
 }
