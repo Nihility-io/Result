@@ -2,6 +2,33 @@ import { z } from "zod"
 import { Result } from "./result.ts"
 
 /**
+ * Custom error encoder are called by the default error decoder when encountering a
+ * non-default (EvalError, RangeError, ReferenceError, SyntaxError, URIError, Error)
+ * error name.
+ * @param message Error message
+ * @param additionalProps Raw plain error object
+ * @returns Instance of an error class
+ */
+export interface ErrorTypeDecoder<Props extends Record<string, unknown> = Record<string, unknown>> {
+	(message: string, additionalProps: Props): Error
+}
+
+const registeredErrorTypes: Record<string, ErrorTypeDecoder<never>> = {}
+
+/**
+ * Registers a custom decoder for the given error type name, which is used by the default
+ * error decoder.
+ * @param name Name of the custom error
+ * @param decoder Decoder for said error
+ */
+export const registerErrorType = <Props extends Record<string, unknown> = Record<string, unknown>>(
+	name: string,
+	decoder: ErrorTypeDecoder<Props>,
+) => {
+	registeredErrorTypes[name] = decoder
+}
+
+/**
  * The error encoder is called when encoding a Failure to JSON. This function
  * is necessary since errors cannot be encoded to JSON by default.
  * @param err Error that should be encoded
@@ -16,11 +43,11 @@ export interface ErrorEncoder {
  * is necessary to decode the wrapped error.
  * @param name Name of the error type
  * @param message Error message
- * @param obj Raw plain error object
+ * @param additionalProps Raw plain error object
  * @returns Instance of an error class
  */
 export interface ErrorDecoder {
-	(name: string, message: string, obj: Record<string, unknown>): Error
+	(name: string, message: string, additionalProps: Record<string, unknown>): Error
 }
 
 /**
@@ -38,14 +65,13 @@ export interface JSONReviver {
  * @param err Error that should be encoded
  * @returns Plain object representing the error
  */
-export const defaultErrorEncoder: ErrorEncoder = (err) => {
-	return Object.getOwnPropertyNames(err)
+export const defaultErrorEncoder: ErrorEncoder = (err) =>
+	Object.getOwnPropertyNames(err)
 		.filter((x) => x !== "stack")
 		.reduce((res, key) => ({
 			...res,
 			[key]: (err as unknown as Record<string, unknown>)[key],
 		}), { name: err.name, message: err.message })
-}
 
 /**
  * This is the default implementation of a error decoder. It can decode the
@@ -59,6 +85,10 @@ export const defaultErrorEncoder: ErrorEncoder = (err) => {
  * @returns Instance of an error class
  */
 export const defaultErrorDecoder: ErrorDecoder = (name, message, additionalProps) => {
+	if (Object.hasOwn(registeredErrorTypes, name)) {
+		return registeredErrorTypes[name](message, additionalProps as never)
+	}
+
 	const err = (() => {
 		switch (name) {
 			case "EvalError":

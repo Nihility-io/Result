@@ -21,6 +21,8 @@ class MyError extends Error {
 	}
 }
 
+Result.registerErrorType("MyError", (message) => new MyError(message))
+
 const assertFailureEquals = (e1: Failure<unknown>, e2: Failure<unknown>) => {
 	assertErrorEquals(e1.error, e2.error)
 }
@@ -87,6 +89,8 @@ Deno.test("Encoding/Decoding", async (t) => {
 			assertInstanceOf(resR, Result as any)
 			assertFailureEquals(resJ as Failure<PersonNoZod>, failureResult as Failure<unknown>)
 			assertFailureEquals(resR as Failure<Person>, failureResult as Failure<unknown>)
+			assertInstanceOf((resJ as Failure<PersonNoZod>).unwrapError(), MyError)
+			assertInstanceOf((resR as Failure<Person>).unwrapError(), MyError)
 		})
 
 		await t.step("FailureWithoutModel", () => {
@@ -98,6 +102,8 @@ Deno.test("Encoding/Decoding", async (t) => {
 			assertInstanceOf(resR, Result as any)
 			assertFailureEquals(resJ as Failure<PersonNoZod>, failureResult as Failure<unknown>)
 			assertFailureEquals(resR as Failure<PersonNoZod>, failureResult as Failure<unknown>)
+			assertInstanceOf((resJ as Failure<PersonNoZod>).unwrapError(), MyError)
+			assertInstanceOf((resR as Failure<Person>).unwrapError(), MyError)
 		})
 
 		await t.step("Nested", () => {
