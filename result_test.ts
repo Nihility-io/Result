@@ -2,6 +2,12 @@
 import { assertEquals, assertInstanceOf, assertIsError, assertThrows } from "@std/assert"
 import { z } from "zod"
 import Result, { Failure, Success } from "./mod.ts"
+import { delay } from "@std/async/delay"
+
+const delayResult = async <T>(value: T) => {
+	await delay(500)
+	return value
+}
 
 const Person = z.object({
 	name: z.string(),
@@ -210,6 +216,26 @@ Deno.test("Functions", async (t) => {
 			assertEquals(failure.map((x) => x * 2), expectedFailure)
 			assertEquals(failure.map((x) => Result.success(x * 2)), expectedFailure)
 			assertEquals(failure.map((_x) => Result.failure(new Error("Error"))), expectedFailure)
+		})
+	})
+
+	await t.step("MapAsync", async (t) => {
+		await t.step("Success", async () => {
+			assertEquals(await success.mapAsync((x) => delayResult(x * 2)), expectedSuccess)
+			assertEquals(await success.mapAsync((x) => delayResult(Result.success(x * 2))), expectedSuccess)
+			assertEquals(
+				await success.mapAsync((_x) => delayResult(Result.failure(new Error("Error")))),
+				expectedFailure,
+			)
+		})
+
+		await t.step("Failure", async () => {
+			assertEquals(await failure.mapAsync((x) => delayResult(x * 2)), expectedFailure)
+			assertEquals(await failure.mapAsync((x) => delayResult(Result.success(x * 2))), expectedFailure)
+			assertEquals(
+				await failure.mapAsync((_x) => delayResult(Result.failure(new Error("Error")))),
+				expectedFailure,
+			)
 		})
 	})
 
