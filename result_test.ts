@@ -209,13 +209,19 @@ Deno.test("Functions", async (t) => {
 		await t.step("Success", () => {
 			assertEquals(success.map((x) => x * 2), expectedSuccess)
 			assertEquals(success.map((x) => Result.success(x * 2)), expectedSuccess)
-			assertEquals(success.map((_x) => Result.failure(new Error("Error"))), expectedFailure)
+			assertErrorEquals(
+				success.map((_x) => Result.failure(new Error("Error"))).unwrapError(),
+				expectedFailure.unwrapError(),
+			)
 		})
 
 		await t.step("Failure", () => {
-			assertEquals(failure.map((x) => x * 2), expectedFailure)
-			assertEquals(failure.map((x) => Result.success(x * 2)), expectedFailure)
-			assertEquals(failure.map((_x) => Result.failure(new Error("Error"))), expectedFailure)
+			assertErrorEquals(failure.map((x) => x * 2).unwrapError(), expectedFailure.unwrapError())
+			assertErrorEquals(failure.map((x) => Result.success(x * 2)).unwrapError(), expectedFailure.unwrapError())
+			assertErrorEquals(
+				failure.map((_x) => Result.failure(new Error("Error"))).unwrapError(),
+				expectedFailure.unwrapError(),
+			)
 		})
 	})
 
@@ -223,18 +229,24 @@ Deno.test("Functions", async (t) => {
 		await t.step("Success", async () => {
 			assertEquals(await success.mapAsync((x) => delayResult(x * 2)), expectedSuccess)
 			assertEquals(await success.mapAsync((x) => delayResult(Result.success(x * 2))), expectedSuccess)
-			assertEquals(
-				await success.mapAsync((_x) => delayResult(Result.failure(new Error("Error")))),
-				expectedFailure,
+			assertErrorEquals(
+				(await success.mapAsync((_x) => delayResult(Result.failure(new Error("Error"))))).unwrapError(),
+				expectedFailure.unwrapError(),
 			)
 		})
 
 		await t.step("Failure", async () => {
-			assertEquals(await failure.mapAsync((x) => delayResult(x * 2)), expectedFailure)
-			assertEquals(await failure.mapAsync((x) => delayResult(Result.success(x * 2))), expectedFailure)
-			assertEquals(
-				await failure.mapAsync((_x) => delayResult(Result.failure(new Error("Error")))),
-				expectedFailure,
+			assertErrorEquals(
+				(await failure.mapAsync((x) => delayResult(x * 2))).unwrapError(),
+				expectedFailure.unwrapError(),
+			)
+			assertErrorEquals(
+				(await failure.mapAsync((x) => delayResult(Result.success(x * 2)))).unwrapError(),
+				expectedFailure.unwrapError(),
+			)
+			assertErrorEquals(
+				(await failure.mapAsync((_x) => delayResult(Result.failure(new Error("Error"))))).unwrapError(),
+				expectedFailure.unwrapError(),
 			)
 		})
 	})
@@ -277,7 +289,7 @@ Deno.test("Functions", async (t) => {
 		})
 
 		await t.step("Failure", () => {
-			assertEquals(Result.all(resultListFailure), expectedCombineFailure)
+			assertErrorEquals(Result.all(resultListFailure).unwrapError(), expectedCombineFailure.unwrapError())
 		})
 	})
 

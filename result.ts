@@ -406,7 +406,7 @@ export class Success<T> extends Result<T> {
 
 			return Result.success(res)
 		} catch (err) {
-			return Result.failure(err)
+			return Result.failure(err as Error)
 		}
 	}
 
