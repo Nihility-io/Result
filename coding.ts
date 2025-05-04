@@ -132,7 +132,7 @@ const omitKeys = (obj: Record<string, unknown>, keys: string[]): Record<string, 
 /**
  * Zod model for parsing an plain object into an Error
  */
-const errorModel = z.looseObject({
+const errorModel = z.looseInterface({
 	name: z.string(),
 	message: z.string(),
 }).transform((x) =>
@@ -147,11 +147,11 @@ const errorModel = z.looseObject({
  * Zod model for validating a plain object represents and result object
  */
 const jsonModel = z.discriminatedUnion([
-	z.strictObject({
+	z.strictInterface({
 		status: z.literal("success"),
 		value: z.any(),
 	}),
-	z.strictObject({
+	z.strictInterface({
 		status: z.literal("failure"),
 		error: errorModel,
 	}),
