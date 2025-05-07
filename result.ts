@@ -146,6 +146,15 @@ export abstract class Result<T> {
 	}
 
 	/**
+	 * Takes a result and returns a promise with the wrapped value. If the result is a failure
+	 * it rejects the promise with the wrapped error.
+	 * @param res Result
+	 * @returns Promise with the wrapped value
+	 */
+	public static readonly toPromise = <T>(res: Result<T> | Promise<Result<T>>): Promise<T> =>
+		Promise.resolve(res).then((r) => r.unwrap())
+
+	/**
 	 * The error encoder is called when encoding a Failure to JSON. This function
 	 * is necessary since errors cannot be encoded to JSON by default.
 	 * The default implementation of this functions encodes all error properties except
@@ -331,6 +340,16 @@ export abstract class Result<T> {
 	 */
 	public as<R>(): Result<R> {
 		return this as Result<unknown> as Result<R>
+	}
+
+	/**
+	 * Takes a result and returns a promise with the wrapped value. If the result is a failure
+	 * it rejects the promise with the wrapped error.
+	 * @param res Result
+	 * @returns Promise with the wrapped value
+	 */
+	public toPromise(): Promise<T> {
+		return Promise.resolve(0).then(() => this.unwrap())
 	}
 
 	/**
