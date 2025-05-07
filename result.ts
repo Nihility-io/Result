@@ -85,9 +85,18 @@ export abstract class Result<T> {
 	public static readonly map = <T, R>(f: (value: T) => R | Result<R>) => (res: Result<T>): Result<R> => res.map(f)
 
 	/**
-	 * If the result type is success, map calls the provided function with the wrapped
+	 * If the result type is failure, mapError calls the provided function with the wrapped
+	 * error as an parameter. Said function should return a new error.
+	 * If the result type is success, mapError simply returns the current result.
+	 * @param f Function that transforms the wrapped error of the result
+	 * @returns New result
+	 */
+	public static readonly mapError = <T>(f: (error: Error) => Error) => (res: Result<T>): Result<T> => res.mapError(f)
+
+	/**
+	 * If the result type is success, mapAsync calls the provided function with the wrapped
 	 * value as an parameter. Said function should return either a new value or a new result.
-	 * If the result type is failure, map simply returns the current result.
+	 * If the result type is failure, mapAsync simply returns the current result.
 	 * @param f Function that transforms the wrapped value of the result
 	 * @returns New result
 	 */
@@ -267,13 +276,22 @@ export abstract class Result<T> {
 	public abstract map<R>(f: (value: T) => R | Result<R>): Result<R>
 
 	/**
-	 * If the result type is success, map calls the provided function with the wrapped
+	 * If the result type is success, mapAsync calls the provided function with the wrapped
 	 * value as an parameter. Said function should return either a new value or a new result.
-	 * If the result type is failure, map simply returns the current result.
+	 * If the result type is failure, mapAsync simply returns the current result.
 	 * @param f Function that transforms the wrapped value of the result
 	 * @returns New result
 	 */
 	public abstract mapAsync<R>(f: (value: T) => Promise<R | Result<R>>): Promise<Result<R>>
+
+	/**
+	 * If the result type is failure, mapError calls the provided function with the wrapped
+	 * error as an parameter. Said function should return a new error.
+	 * If the result type is success, mapError simply returns the current result.
+	 * @param f Function that transforms the wrapped error of the result
+	 * @returns New result
+	 */
+	public abstract mapError(f: (error: Error) => Error): Result<T>
 
 	/**
 	 * Takes a `success` and `failure` function which are called when the result is a success
@@ -411,6 +429,17 @@ export class Success<T> extends Result<T> {
 	}
 
 	/**
+	 * If the result type is failure, mapError calls the provided function with the wrapped
+	 * error as an parameter. Said function should return a new error.
+	 * If the result type is success, mapError simply returns the current result.
+	 * @param f Function that transforms the wrapped error of the result
+	 * @returns New result
+	 */
+	public mapError(_f: (error: Error) => Error): Result<T> {
+		return Result.success(this.value)
+	}
+
+	/**
 	 * Takes a `success` and `failure` function which are called when the result is a success
 	 * and a failure respectively. The result of the called function is then returned
 	 * @param m Object containing a `success` and `failure` function
@@ -504,6 +533,17 @@ export class Failure<T> extends Result<T> {
 	 */
 	public mapAsync<R>(_f: (value: T) => Promise<R | Result<R>>): Promise<Result<R>> {
 		return Promise.resolve(Result.failure(this.error))
+	}
+
+	/**
+	 * If the result type is failure, mapError calls the provided function with the wrapped
+	 * error as an parameter. Said function should return a new error.
+	 * If the result type is success, mapError simply returns the current result.
+	 * @param f Function that transforms the wrapped error of the result
+	 * @returns New result
+	 */
+	public mapError(f: (error: Error) => Error): Result<T> {
+		return Result.failure(f(this.error))
 	}
 
 	/**

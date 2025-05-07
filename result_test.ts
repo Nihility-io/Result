@@ -145,6 +145,7 @@ Deno.test("Functions", async (t) => {
 	const failure = Result.failure<number>(new Error("Error"))
 	const expectedSuccess = Result.success(10)
 	const expectedFailure = Result.failure<number>(new Error("Error"))
+	const expectedNewFailure = Result.failure<number>(new Error("NewError"))
 	const resultListSuccess = [
 		Result.success(1),
 		Result.success(2),
@@ -247,6 +248,19 @@ Deno.test("Functions", async (t) => {
 			assertErrorEquals(
 				(await failure.mapAsync((_x) => delayResult(Result.failure(new Error("Error"))))).unwrapError(),
 				expectedFailure.unwrapError(),
+			)
+		})
+	})
+
+	await t.step("MapError", async (t) => {
+		await t.step("Success", () => {
+			assertEquals(success.mapError((_err) => new Error("NewError")), success)
+		})
+
+		await t.step("Failure", () => {
+			assertErrorEquals(
+				failure.mapError((_err) => new Error("NewError")).unwrapError(),
+				expectedNewFailure.unwrapError(),
 			)
 		})
 	})
