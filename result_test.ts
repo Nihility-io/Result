@@ -25,9 +25,13 @@ class MyError extends Error {
 		super(message)
 		this.name = "MyError"
 	}
+
+	public static fromResultFailure(message: string, _params: Record<string, unknown>): Error {
+		return new MyError(message)
+	}
 }
 
-Result.registerErrorType("MyError", (message) => new MyError(message))
+Result.registerErrorType(MyError)
 
 const assertFailureEquals = (e1: Failure<unknown>, e2: Failure<unknown>) => {
 	assertErrorEquals(e1.error, e2.error)

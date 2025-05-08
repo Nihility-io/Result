@@ -16,9 +16,9 @@ export interface ErrorTypeDecoder<Props extends Record<string, unknown> = Record
 /**
  * Custom decodable error type.
  */
-export interface DecodableErrorType<Props extends Record<string, unknown> = Record<string, unknown>> {
+export interface DecodableErrorType {
 	name: string
-	fromResultFailure: (message: string, additionalProps: Props) => Error
+	fromResultFailure: (message: string, params: Record<string, unknown>) => Error
 }
 
 const registeredErrorTypes: Record<string, ErrorTypeDecoder<never>> = {}
@@ -39,13 +39,18 @@ export const registerErrorDecoder = <Props extends Record<string, unknown> = Rec
 /**
  * Registers a custom decodable error type, which is used by the default error decoder.
  * @param name Name of the custom error
- * @param decoder Decoder for said error
+ * @param err Decodable error type
  */
-export const registerErrorType = <Props extends Record<string, unknown> = Record<string, unknown>>(
-	err: DecodableErrorType<Props>,
-) => {
+export const registerErrorType = (err: DecodableErrorType) => {
 	registeredErrorTypes[err.name] = err.fromResultFailure
 }
+
+/**
+ * Registers custom decodable error types, which are used by the default error decoder.
+ * @param name Name of the custom error
+ * @param err Decodable error types
+ */
+export const registerErrorTypes = (...err: DecodableErrorType[]) => err.forEach((err) => registerErrorType(err))
 
 /**
  * The error encoder is called when encoding a Failure to JSON. This function
