@@ -8,6 +8,7 @@ import {
 	ErrorTypeDecoder,
 	fromJson,
 	JSONReviver,
+	registerErrorDecoder,
 	registerErrorType,
 	resultJSONReviver,
 } from "./coding.ts"
@@ -186,9 +187,18 @@ export abstract class Result<T> {
 	 * @param name Name of the custom error
 	 * @param decoder Decoder for said error
 	 */
-	public static registerErrorType: <Props extends Record<string, unknown> = Record<string, unknown>>(
+	public static registerErrorDecoder: <Props extends Record<string, unknown> = Record<string, unknown>>(
 		name: string,
-		decoder: ErrorTypeDecoder<Props> | DecodableErrorType<Props>,
+		decoder: ErrorTypeDecoder<Props>,
+	) => void = registerErrorDecoder
+
+	/**
+	 * Registers a custom decodable error type, which is used by the default error decoder.
+	 * @param name Name of the custom error
+	 * @param decoder Decoder for said error
+	 */
+	public static registerErrorType: <Props extends Record<string, unknown> = Record<string, unknown>>(
+		err: DecodableErrorType<Props>,
 	) => void = registerErrorType
 
 	/**
