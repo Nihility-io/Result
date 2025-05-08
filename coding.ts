@@ -13,6 +13,10 @@ export interface ErrorTypeDecoder<Props extends Record<string, unknown> = Record
 	(message: string, additionalProps: Props): Error
 }
 
+export interface DecodableErrorType<Props extends Record<string, unknown> = Record<string, unknown>> {
+	resultDecoder: (message: string, additionalProps: Props) => Error
+}
+
 const registeredErrorTypes: Record<string, ErrorTypeDecoder<never>> = {}
 
 /**
@@ -23,22 +27,9 @@ const registeredErrorTypes: Record<string, ErrorTypeDecoder<never>> = {}
  */
 export const registerErrorType = <Props extends Record<string, unknown> = Record<string, unknown>>(
 	name: string,
-	decoder: ErrorTypeDecoder<Props>,
+	decoder: ErrorTypeDecoder<Props> | DecodableErrorType<Props>,
 ) => {
-	registeredErrorTypes[name] = decoder
-}
-
-/**
- * Registers custom decoders for the given error type names, which are used by the default
- * error decoder.
- * @param errors Object containing error type names and their decoders
- */
-export const registerErrorTypes = <Props extends Record<string, unknown> = Record<string, unknown>>(
-	errors: Record<string, ErrorTypeDecoder<Props>>,
-) => {
-	Object.entries(errors).forEach(([name, decoder]) => {
-		registeredErrorTypes[name] = decoder
-	})
+	registeredErrorTypes[name] = (decoder as DecodableErrorType<Props>)?.resultDecoder ?? decoder
 }
 
 /**
