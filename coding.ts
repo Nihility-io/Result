@@ -29,6 +29,19 @@ export const registerErrorType = <Props extends Record<string, unknown> = Record
 }
 
 /**
+ * Registers custom decoders for the given error type names, which are used by the default
+ * error decoder.
+ * @param errors Object containing error type names and their decoders
+ */
+export const registerErrorTypes = <Props extends Record<string, unknown> = Record<string, unknown>>(
+	errors: Record<string, ErrorTypeDecoder<Props>>,
+) => {
+	Object.entries(errors).forEach(([name, decoder]) => {
+		registeredErrorTypes[name] = decoder
+	})
+}
+
+/**
  * The error encoder is called when encoding a Failure to JSON. This function
  * is necessary since errors cannot be encoded to JSON by default.
  * @param err Error that should be encoded
