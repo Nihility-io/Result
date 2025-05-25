@@ -1,18 +1,5 @@
-import { z, ZodType } from "zod"
-import {
-	DecodableErrorType,
-	defaultErrorDecoder,
-	defaultErrorEncoder,
-	ErrorDecoder,
-	ErrorEncoder,
-	ErrorTypeDecoder,
-	fromJson,
-	JSONReviver,
-	registerErrorDecoder,
-	registerErrorType,
-	registerErrorTypes,
-	resultJSONReviver,
-} from "./coding.ts"
+import { z } from "zod"
+import { DecodableErrorType, ErrorTypeDecoder, jsonModel } from "./models.ts"
 
 /**
  * Helper object for Result.match
@@ -27,6 +14,8 @@ export interface ResultMatcher<T, R> {
  * error (Failure).
  */
 export abstract class Result<T> {
+	static #registeredErrorTypes: Record<string, ErrorTypeDecoder<never>> = {}
+
 	/*******************************************************************************
 	 * Static Methods                                                              *
 	 *******************************************************************************/
@@ -34,32 +23,42 @@ export abstract class Result<T> {
 	/**
 	 * Checks if a result is a success
 	 */
-	public static readonly isSuccess = <T>(res: Result<T>): res is Success<T> => res instanceof Success
+	public static isSuccess<T>(res: Result<T>): res is Success<T> {
+		return res instanceof Success
+	}
 
 	/**
 	 * Checks if a result is a failure
 	 */
-	public static readonly isFailure = <T>(res: Result<T>): res is Failure<T> => res instanceof Failure
+	public static isFailure<T>(res: Result<T>): res is Failure<T> {
+		return res instanceof Failure
+	}
 
 	/**
 	 * Casts the inner type of a result into a different type. Only use it, if you know what you are doing.
 	 * @returns Cast result
 	 */
-	public static readonly as = <T, R>(res: Result<T>): Result<R> => res.as<R>()
+	public static as<T, R>(res: Result<T>): Result<R> {
+		return res.as<R>()
+	}
 
 	/**
 	 * Creates a new success result
 	 * @param value Value that should be wrapped
 	 * @returns Result that wraps the given value
 	 */
-	public static readonly success = <T>(value: T): Result<T> => Success.of(value)
+	public static success<T>(value: T): Result<T> {
+		return Success.of(value)
+	}
 
 	/**
 	 * Creates a new failure result
 	 * @param err Error that should be wrapped
 	 * @returns Result that wraps the given error
 	 */
-	public static readonly failure = <T>(err: Error | string): Result<T> => Failure.of(err)
+	public static failure<T>(err: Error | string): Result<T> {
+		return Failure.of(err)
+	}
 
 	/**
 	 * If the result is a success its value is returned, If the result is a failure the
@@ -69,14 +68,18 @@ export abstract class Result<T> {
 	 * @returns The wrapped value or the default value
 	 * @throws The failure' wrapped error if no default is given
 	 */
-	public static readonly unwrap = <T>(defaultVault?: T) => (res: Result<T>): T => res.unwrap(defaultVault)
+	public static unwrap<T>(defaultVault?: T): (res: Result<T>) => T {
+		return (res) => res.unwrap(defaultVault)
+	}
 
 	/**
 	 * If the result is a failure its error is returned, If the result is a success the
 	 * function throws an error.
 	 * @returns The wrapped error
 	 */
-	public static readonly unwrapError = <T>(res: Result<T>): Error => res.unwrapError()
+	public static unwrapError<T>(res: Result<T>): Error {
+		return res.unwrapError()
+	}
 
 	/**
 	 * If the result type is success, map calls the provided function with the wrapped
@@ -85,7 +88,9 @@ export abstract class Result<T> {
 	 * @param f Function that transforms the wrapped value of the result
 	 * @returns New result
 	 */
-	public static readonly map = <T, R>(f: (value: T) => R | Result<R>) => (res: Result<T>): Result<R> => res.map(f)
+	public static map<T, R>(f: (value: T) => R | Result<R>): (res: Result<T>) => Result<R> {
+		return (res) => res.map(f)
+	}
 
 	/**
 	 * If the result type is failure, mapError calls the provided function with the wrapped
@@ -94,7 +99,9 @@ export abstract class Result<T> {
 	 * @param f Function that transforms the wrapped error of the result
 	 * @returns New result
 	 */
-	public static readonly mapError = <T>(f: (error: Error) => Error) => (res: Result<T>): Result<T> => res.mapError(f)
+	public static mapError<T>(f: (error: Error) => Error): (res: Result<T>) => Result<T> {
+		return (res) => res.mapError(f)
+	}
 
 	/**
 	 * If the result type is success, mapAsync calls the provided function with the wrapped
@@ -103,8 +110,9 @@ export abstract class Result<T> {
 	 * @param f Function that transforms the wrapped value of the result
 	 * @returns New result
 	 */
-	public static readonly mapAsync =
-		<T, R>(f: (value: T) => Promise<R | Result<R>>) => (res: Result<T>): Promise<Result<R>> => res.mapAsync(f)
+	public static mapAsync<T, R>(f: (value: T) => Promise<R | Result<R>>): (res: Result<T>) => Promise<Result<R>> {
+		return (res) => res.mapAsync(f)
+	}
 
 	/**
 	 * Takes a `success` and `failure` function which are called when the result is a success
@@ -112,24 +120,18 @@ export abstract class Result<T> {
 	 * @param m Object containing a `success` and `failure` function
 	 * @returns Result returned by the matcher
 	 */
-	public static readonly match = <T, R>(m: ResultMatcher<T, R>) => (res: Result<T>): R => res.match(m)
+	public static match<T, R>(m: ResultMatcher<T, R>): (res: Result<T>) => R {
+		return (res) => res.match(m)
+	}
 
 	/**
 	 * Takes a list of results and returns a list of all success values
 	 * @param a List of results
 	 * @returns List of wrapped values
 	 */
-	public static readonly filter = <T>(a: Result<T>[]): T[] =>
-		a.filter((x) => x instanceof Success).map((x) => (x as Success<T>).value)
-
-	/**
-	 * Takes a list of results and returns a result containing all success values.
-	 * If a failure is encountered it returns that failure instead.
-	 * @param a List of results
-	 * @returns Result with the list of wrapped values
-	 * @deprecated Use `Result.all` instead.
-	 */
-	public static readonly combine = <T>(a: Result<T>[]): Result<T[]> => this.all(a)
+	public static filter<T>(a: Result<T>[]): T[] {
+		return a.filter((x) => x instanceof Success).map((x) => (x as Success<T>).value)
+	}
 
 	/**
 	 * Takes a list of results and returns a result containing all success values.
@@ -137,7 +139,7 @@ export abstract class Result<T> {
 	 * @param a List of results
 	 * @returns Result with the list of wrapped values
 	 */
-	public static readonly all = <T>(a: Result<T>[]): Result<T[]> => {
+	public static all<T>(a: Result<T>[]): Result<T[]> {
 		const res = [] as T[]
 		for (const e of a) {
 			if (e instanceof Failure) {
@@ -154,8 +156,9 @@ export abstract class Result<T> {
 	 * @param res Result
 	 * @returns Promise with the wrapped value
 	 */
-	public static readonly toPromise = <T>(res: Result<T> | Promise<Result<T>>): Promise<T> =>
-		Promise.resolve(res).then((r) => r.unwrap())
+	public static toPromise<T>(res: Result<T> | Promise<Result<T>>): Promise<T> {
+		return Promise.resolve(res).then((r) => r.unwrap())
+	}
 
 	/**
 	 * The error encoder is called when encoding a Failure to JSON. This function
@@ -165,7 +168,14 @@ export abstract class Result<T> {
 	 * @param err Error that should be encoded
 	 * @returns Plain object representing the error
 	 */
-	public static errorEncoder: ErrorEncoder = defaultErrorEncoder
+	public static errorEncoder(err: Error): Record<string, unknown> {
+		return Object.getOwnPropertyNames(err)
+			.filter((x) => x !== "stack")
+			.reduce((res, key) => ({
+				...res,
+				[key]: (err as unknown as Record<string, unknown>)[key],
+			}), { name: err.name, message: err.message })
+	}
 
 	/**
 	 * The error decoder is called when decoding a Failure from JSON. This function
@@ -180,7 +190,38 @@ export abstract class Result<T> {
 	 * @param obj Object containing additional properties
 	 * @returns Instance of an error class
 	 */
-	public static errorDecoder: ErrorDecoder = defaultErrorDecoder
+	public static errorDecoder(name: string, message: string, additionalProps: Record<string, unknown>): Error {
+		if (Object.hasOwn(Result.#registeredErrorTypes, name)) {
+			return Result.#registeredErrorTypes[name](message, additionalProps as never)
+		}
+
+		const err = (() => {
+			switch (name) {
+				case "EvalError":
+					return new EvalError(message)
+				case "RangeError":
+					return new RangeError(message)
+				case "ReferenceError":
+					return new ReferenceError(message)
+				case "SyntaxError":
+					return new SyntaxError(message)
+				case "URIError":
+					return new URIError(message)
+				default:
+					return Object.defineProperty(new Error(message), "name", {
+						value: name,
+					})
+			}
+		})()
+
+		for (const key in additionalProps) {
+			Object.defineProperty(err, key, {
+				value: additionalProps[key],
+			})
+		}
+
+		return Object.defineProperty(err, "stack", { value: "" })
+	}
 
 	/**
 	 * Registers a custom decoder for the given error type name, which is used by the default
@@ -188,30 +229,48 @@ export abstract class Result<T> {
 	 * @param name Name of the custom error
 	 * @param decoder Decoder for said error
 	 */
-	public static registerErrorDecoder: <Props extends Record<string, unknown> = Record<string, unknown>>(
+	public static registerErrorDecoder<Props extends Record<string, unknown> = Record<string, unknown>>(
 		name: string,
 		decoder: ErrorTypeDecoder<Props>,
-	) => void = registerErrorDecoder
+	): void {
+		Result.#registeredErrorTypes[name] = decoder
+	}
 
 	/**
 	 * Registers a custom decodable error type, which is used by the default error decoder.
 	 * @param name Name of the custom error
 	 * @param err Decodable error type
 	 */
-	public static registerErrorType: (err: DecodableErrorType) => void = registerErrorType
+	public static registerErrorType(err: DecodableErrorType): void {
+		Result.#registeredErrorTypes[err.name] = err.fromResultFailure
+	}
 
 	/**
 	 * Registers custom decodable error types, which are used by the default error decoder.
 	 * @param name Name of the custom error
 	 * @param err Decodable error types
 	 */
-	public static registerErrorTypes: (...err: DecodableErrorType[]) => void = registerErrorTypes
+	public static registerErrorTypes(...err: DecodableErrorType[]): void {
+		err.forEach(Result.registerErrorType)
+	}
+
 	/**
 	 * Whenever a JSON is parsed that may contain result type, you need to specify this
 	 * function when calling JSON.parse e.g. `JSON.parse(jsonStr, Result.JSONReviver).
 	 * Parsing a JSON without it results in a plain object instead of result instances.
 	 */
-	public static readonly JSONReviver: JSONReviver = resultJSONReviver
+	public static JSONReviver(_key: string, value: unknown): unknown {
+		const res = jsonModel.safeParse(value)
+		if (res.success) {
+			if (res.data.status === "success") {
+				return Result.success(res.data.value)
+			} else if (res.data.status === "failure") {
+				return Result.failure(res.data.error)
+			}
+		}
+
+		return value
+	}
 
 	/**
 	 * Parses a JSON string into a result type and optionally parses the contained value using
@@ -233,11 +292,34 @@ export abstract class Result<T> {
 	 */
 	public static fromJson<T>(str: string): Result<T>
 
-	public static fromJson(str: string, model?: unknown): unknown {
-		if (model !== undefined) {
-			return fromJson(str, model as ZodType)
+	public static fromJson<T>(str: string, model?: z.ZodType<T>): Result<T> {
+		let res: unknown = undefined
+
+		try {
+			res = JSON.parse(str, Result.JSONReviver)
+		} catch (e) {
+			return Result.failure(e as Error)
 		}
-		return fromJson(str)
+
+		if (res instanceof Result) {
+			if (res.isSuccess()) {
+				res = res.value
+			} else {
+				return res
+			}
+		}
+
+		if (!model) {
+			return Result.success(res as T)
+		}
+
+		const v = model.safeParse(res)
+
+		if (v.success) {
+			return Result.success(v.data)
+		} else {
+			return Result.failure(v.error)
+		}
 	}
 
 	/**

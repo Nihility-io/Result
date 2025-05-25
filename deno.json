@@ -1,6 +1,6 @@
 {
 	"name": "@nihility-io/result",
-	"version": "1.1.0-beta.7",
+	"version": "1.1.0-beta.8",
 	"exports": "./mod.ts",
 	"lock": true,
 	"tasks": {
@@ -14,9 +14,29 @@
 	},
 	"lint": {
 		"rules": {
-			"tags": [
-				"fresh",
-				"recommended"
+			"tags": ["recommended", "jsr"],
+			"include": [
+				"jsx-button-has-type",
+				"camelcase",
+				"default-param-last",
+				"eqeqeq",
+				"explicit-function-return-type",
+				"explicit-module-boundary-types",
+				"no-console",
+				"no-const-assign",
+				"no-eval",
+				"no-external-import",
+				"no-inferrable-types",
+				"no-self-compare",
+				"no-sparse-arrays",
+				"no-sync-fn-in-async-fn",
+				"no-throw-literal",
+				"no-undef",
+				"no-useless-rename",
+				"single-var-declarator"
+			],
+			"exclude": [
+				"verbatim-module-syntax"
 			]
 		},
 		"exclude": [
