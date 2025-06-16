@@ -1,8 +1,8 @@
 // deno-lint-ignore-file no-explicit-any
 import { assertEquals, assertInstanceOf, assertIsError, assertThrows } from "@std/assert"
+import { delay } from "@std/async/delay"
 import { z } from "zod"
 import Result, { Failure, Success } from "./mod.ts"
-import { delay } from "@std/async/delay"
 
 const delayResult = async <T>(value: T) => {
 	await delay(500)
